@@ -9,7 +9,10 @@ export type TTokenType =
   | 'FALSE'
   | 'NULL'
   | 'NUMBER'
-  | 'STRING';
+  | 'STRING'
+  | 'IDENTIFIER'
+  | 'COMMENT'
+  | 'EOF';
 
 export interface IToken {
   type: TTokenType;
@@ -40,7 +43,7 @@ export class Lexer {
 
       const peek = this.peek(), currentPosition = this.currentIndex;
 
-      if (this.isNumber(peek) || this.peek() === '-') {
+      if (this.isNumber(peek) || '+-.'.includes(this.peek())) {
         match = true;
         this.tokenList.push({
           type: 'NUMBER',
@@ -48,6 +51,36 @@ export class Lexer {
           position: currentPosition,
         });
 
+        continue;
+      }
+
+      if (this.isIdentifierNameStart(peek)) {
+        match = true;
+
+        const matchResult = this.matchIdentifier();
+
+        if (([
+            ['true', 'TRUE'],
+            ['false', 'FALSE'],
+            ['null', 'NULL'],
+            ['Infinity', 'NUMBER'],
+            ['NaN', 'NUMBER'],
+          ] satisfies [string, TTokenType][]
+        ).some(
+          ([value, type]) => value === matchResult && this.tokenList.push({
+            type,
+            value,
+            position: currentPosition,
+          }))
+        ) {
+          continue;
+        }
+
+        this.tokenList.push({
+          type: 'IDENTIFIER',
+          value: matchResult,
+          position: currentPosition,
+        });
         continue;
       }
 
@@ -100,51 +133,86 @@ export class Lexer {
             position: currentPosition,
           });
           break;
-        case 't':
-          if (this.matchSequence('true')) {
-            match = true;
-            this.tokenList.push({
-              type: 'TRUE',
-              value: 'true',
-              position: currentPosition,
-            });
-          }
-          break;
-        case 'f':
-          if (this.matchSequence('false')) {
-            match = true;
-            this.tokenList.push({
-              type: 'FALSE',
-              value: 'false',
-              position: currentPosition,
-            });
-          }
-          break;
-        case 'n':
-          if (this.matchSequence('null')) {
-            match = true;
-            this.tokenList.push({
-              type: 'NULL',
-              value: 'null',
-              position: currentPosition,
-            });
-          }
-          break;
         case '"':
-          const { success, value } = this.matchString();
+        case "'":
+          match = true;
 
-          if (match = success) {
+          const value = this.matchString();
+          this.tokenList.push({
+            type: 'STRING',
+            value: value.slice(1, -1),
+            position: currentPosition,
+          });
+          break;
+        case '/':
+          match = true;
+
+          let comment = '';
+
+          if (this.lookForward(1) === '/') {
+            this.advance();
+            this.advance();
+
+            while (!(this.isAtEnd() || '\n\r'.includes(this.peek()))) comment += this.advance();
             this.tokenList.push({
-              type: 'STRING',
-              value: value.slice(1, -1),
+              type: 'COMMENT',
+              value: comment,
               position: currentPosition,
             });
+
+            break;
           }
-          break;
-        case '\n':
-        case '\r':
-        case ' ':
-        case '\t':
+
+          if (this.lookForward(1) === '*') {
+            this.advance();
+            this.advance();
+
+            while (!this.isAtEnd()) {
+              if (this.peek() === '*' && this.lookForward(1) === '/') {
+                this.advance();
+                this.advance();
+
+                break;
+              }
+
+              comment += this.advance();
+            }
+
+            this.tokenList.push({
+              type: 'COMMENT',
+              value: comment,
+              position: currentPosition,
+            });
+
+            break;
+          }
+
+          throw this.createParseError();
+        case '\u0009':
+        case '\u000A':
+        case '\u000B':
+        case '\u000C':
+        case '\u000D':
+        case '\u0020':
+        case '\u00A0':
+        case '\u2028':
+        case '\u2029':
+        case '\uFEFF':
+        case '\u1680':
+        case '\u2000':
+        case '\u2001':
+        case '\u2002':
+        case '\u2003':
+        case '\u2004':
+        case '\u2005':
+        case '\u2006':
+        case '\u2007':
+        case '\u2008':
+        case '\u2009':
+        case '\u200A':
+        case '\u202F':
+        case '\u205F':
+        case '\u3000':
           match = true;
           this.advance();
           break;
@@ -156,17 +224,12 @@ export class Lexer {
     throw this.createParseError();
   }
 
-  protected matchSequence(sequence: string) {
-    return Array.from(sequence).every(c => this.advance() === c);
-  }
+  protected matchString(): string {
+    let stringBuffer = '', closed = false;
 
-  protected matchString() {
-    let stringBuffer = '', success = false;
+    if (!['"', "'"].includes(this.peek())) throw this.createParseError();
 
-    if (this.peek() !== '"') return {
-      success,
-      value: stringBuffer,
-    };
+    const quote = this.peek();
 
     stringBuffer += this.advance();
 
@@ -175,15 +238,12 @@ export class Lexer {
 
       stringBuffer += peek;
 
-      if (['\n', '\r'].includes(peek)) {
-        success = false;
-        break;
-      }
+      if (['\n', '\r'].includes(peek)) throw this.createParseError();
 
       this.advance();
 
-      if (peek === '"') {
-        success = true;
+      if (peek === quote) {
+        closed = true;
         break;
       }
 
@@ -194,6 +254,7 @@ export class Lexer {
 
         if ([
           ['"', '"'],
+          ["'", "'"],
           ['\\', '\\'],
           ['/', '/'],
           ['"', '"'],
@@ -202,6 +263,9 @@ export class Lexer {
           ['n', '\n'],
           ['r', '\r'],
           ['t', '\t'],
+          ['v', '\v'],
+          ['0', '\0'],
+          ['\n', ''],
         ].some(
           ([k, v]) => nearBackslash === k && (stringBuffer += v))
         ) {
@@ -227,48 +291,58 @@ export class Lexer {
           continue;
         }
 
-        success = false;
-        break;
+        throw this.createParseError();
       }
     }
 
-    return {
-      success,
-      value: stringBuffer,
-    }
+    if (!closed) throw this.createParseError();
+
+    return stringBuffer;
+  }
+
+  protected matchIdentifier() {
+    if (!this.isIdentifierNameStart(this.peek())) throw this.createParseError();
+
+    let stringBuffer = '';
+    while (!this.isAtEnd() && this.isIdentifierNamePart(this.peek())) stringBuffer += this.advance();
+
+    return stringBuffer;
   }
 
   protected matchNumber() {
-    let valueBuffer = '', assertNumberBehind = false;
+    let valueBuffer = '';
+
+    if (this.peek() === '0' && this.lookForward(1) === 'x') {
+      this.advance();
+      this.advance();
+
+      let hexSequence = '';
+
+      while (this.isHex(this.peek())) hexSequence += this.advance();
+
+      if (!hexSequence) throw this.createParseError();
+
+      return '0x' + hexSequence;
+    }
+
+    if (this.peek() === '-' && this.lookForward(1) === 'I') {
+      valueBuffer += this.advance();
+
+      const identifier = this.matchIdentifier();
+
+      if (identifier === 'Infinity') return '-Infinity';
+
+      throw this.createParseError();
+    }
 
     while (!this.isAtEnd()) {
-      if (assertNumberBehind) {
-        assertNumberBehind = false;
-
-        if (this.isNumber(this.peek())) {
-          valueBuffer += this.advance();
-          continue;
-        }
-
-        throw this.createParseError();
-      }
-
-      if (this.peek() === '-') {
+      if (this.peek() === '-' || this.peek() === '+') {
         if (!valueBuffer || valueBuffer.slice(-1) === 'e') {
           valueBuffer += this.advance();
 
-          assertNumberBehind = true;
-          continue;
-        }
+          if (this.peek() === '.' && !valueBuffer.includes('.')) continue;
 
-        throw this.createParseError();
-      }
-
-      if (this.peek() === '+') {
-        if (valueBuffer.slice(-1) === 'e') {
-          valueBuffer += this.advance();
-
-          assertNumberBehind = true;
+          valueBuffer += this.matchPureNumber();
           continue;
         }
 
@@ -276,10 +350,13 @@ export class Lexer {
       }
 
       if (this.peek() === '.') {
-        if (!valueBuffer.includes('e') && !valueBuffer.includes('.') && this.isNumber(valueBuffer.slice(-1))) {
+        if (!valueBuffer.includes('e') && !valueBuffer.includes('.')) {
           valueBuffer += this.advance();
 
-          assertNumberBehind = true;
+          if (this.isNumber(valueBuffer.slice(-2, -1)) && !this.isNumber(this.lookForward(1))) continue;
+
+          valueBuffer += this.matchPureNumber();
+
           continue;
         }
 
@@ -287,8 +364,11 @@ export class Lexer {
       }
 
       if (this.peek() === 'e') {
-        if (!valueBuffer.includes('e') && this.isNumber(valueBuffer.slice(-1))) {
+        if (!valueBuffer.includes('e') && (valueBuffer.slice(-1) === '.' || this.isNumber(valueBuffer.slice(-1)))) {
           valueBuffer += this.advance();
+
+          if ('+-'.includes(this.peek())) valueBuffer += this.advance();
+          valueBuffer += this.matchPureNumber();
 
           continue;
         }
@@ -301,13 +381,29 @@ export class Lexer {
       valueBuffer += this.advance();
     }
 
-    if (!this.isNumber(valueBuffer.slice(-1))) throw this.createParseError();
+    return valueBuffer;
+  }
+
+  protected matchPureNumber() {
+    let valueBuffer = '';
+
+    while (!this.isAtEnd() && this.isNumber(this.peek())) valueBuffer += this.advance();
+
+    if (!valueBuffer) throw this.createParseError();
 
     return valueBuffer;
   }
 
   protected isNumber(char: string) {
     return char.charCodeAt(0) >= 48 && char.charCodeAt(0) <= 57;
+  }
+
+  protected isIdentifierNameStart(char: string) {
+    return '_$'.includes(char) || (char.toUpperCase().charCodeAt(0) >= 65 && char.toUpperCase().charCodeAt(0) <= 90);
+  }
+
+  protected isIdentifierNamePart(char: string) {
+    return this.isIdentifierNameStart(char) || this.isNumber(char);
   }
 
   protected isHex(char: string) {
@@ -320,6 +416,12 @@ export class Lexer {
 
   protected peek() {
     return !this.isAtEnd() ? this.input[this.currentIndex] : Lexer.EOF;
+  }
+
+  protected lookForward(steps: number) {
+    if (this.currentIndex + steps >= this.input.length) return Lexer.EOF;
+
+    return this.input[this.currentIndex + steps];
   }
 
   protected advance() {

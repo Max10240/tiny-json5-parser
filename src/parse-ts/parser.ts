@@ -24,7 +24,13 @@ export class ParseError extends Error {
 }
 
 export class Parser {
-  currentIndex = 0;
+  static readonly EOF: DeepRequire<IToken> = {
+    type: 'EOF',
+    value: '<EOF>',
+    position: -1,
+  };
+
+  protected currentIndex = 0;
 
   constructor(readonly tokens: IToken[]) {
   }
@@ -34,7 +40,7 @@ export class Parser {
 
     if (this.isAtEnd()) return result;
 
-    throw new ParseError(`Unexpected ${this.peek().value} at position: ${this.peek().position}`);
+    throw this.createParseError();
   }
 
   parseJson(): JSON {
@@ -43,11 +49,11 @@ export class Parser {
     if (this.check('L_BRACE')) result = this.parseObject();
     else if (this.check('L_S_BRACE')) result = this.parseArray();
     else if (this.check('STRING')) result = this.advance().value;
-    else if (this.check('NUMBER')) result = +this.advance().value;
+    else if (this.check('NUMBER')) result = this.parseNumber();
     else if (this.match('TRUE')) result = true;
     else if (this.match('FALSE')) result = false;
     else if (this.match('NULL')) result = null;
-    else throw new ParseError(`Unexpected ${this.peek().value} at position: ${this.peek().position}`);
+    else throw this.createParseError();
 
     return result;
   }
@@ -90,6 +96,16 @@ export class Parser {
     return array;
   }
 
+  protected parseNumber() {
+    const token = this.consume('NUMBER');
+
+    return token.value.startsWith('0x') ? parseInt(token.value.slice(2)) : +token.value;
+  }
+
+  protected createParseError() {
+    return new ParseError(`Unexpected '${this.peek().value}' at position: ${this.peek().position}`);
+  }
+
   protected match(...types: TTokenType[]) {
     return types.some(t => this.check(t) && this.advance());
   }
@@ -101,7 +117,7 @@ export class Parser {
   }
 
   protected peek() {
-    return this.tokens[this.currentIndex];
+    return this.isAtEnd() ? Parser.EOF : this.tokens[this.currentIndex];
   }
 
   protected advance() {

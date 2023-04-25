@@ -154,11 +154,6 @@ export class Lexer {
             this.advance();
 
             while (!(this.isAtEnd() || '\n\r'.includes(this.peek()))) comment += this.advance();
-            this.tokenList.push({
-              type: 'COMMENT',
-              value: comment,
-              position: currentPosition,
-            });
 
             break;
           }
@@ -177,12 +172,6 @@ export class Lexer {
 
               comment += this.advance();
             }
-
-            this.tokenList.push({
-              type: 'COMMENT',
-              value: comment,
-              position: currentPosition,
-            });
 
             break;
           }
@@ -312,9 +301,11 @@ export class Lexer {
   protected matchNumber() {
     let valueBuffer = '';
 
+    if ('+-'.includes(this.peek())) valueBuffer += this.advance();
+
     if (this.peek() === '0' && this.lookForward(1) === 'x') {
-      this.advance();
-      this.advance();
+      valueBuffer += this.advance();
+      valueBuffer += this.advance();
 
       let hexSequence = '';
 
@@ -322,15 +313,21 @@ export class Lexer {
 
       if (!hexSequence) throw this.createParseError();
 
-      return '0x' + hexSequence;
+      return valueBuffer + hexSequence;
     }
 
-    if (this.peek() === '-' && this.lookForward(1) === 'I') {
-      valueBuffer += this.advance();
-
+    if (this.peek() === 'I') {
       const identifier = this.matchIdentifier();
 
-      if (identifier === 'Infinity') return '-Infinity';
+      if (identifier === 'Infinity') return valueBuffer + identifier;
+
+      throw this.createParseError();
+    }
+
+    if (this.peek() === 'N') {
+      const identifier = this.matchIdentifier();
+
+      if (identifier === 'NaN') return valueBuffer + identifier;
 
       throw this.createParseError();
     }

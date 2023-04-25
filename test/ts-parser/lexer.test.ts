@@ -21,9 +21,17 @@ describe('test ts lexer', () => {
       type: 'NUMBER',
       value: '0x0123456789abcdefABCDEF',
     } satisfies Partial<IToken>);
+    expect(parse('-0x0123456789abcdefABCDEF')[0]).toMatchObject({
+      type: 'NUMBER',
+      value: '-0x0123456789abcdefABCDEF',
+    } satisfies Partial<IToken>);
     expect(parse('Infinity')[0]).toMatchObject({
       type: 'NUMBER',
       value: 'Infinity',
+    } satisfies Partial<IToken>);
+    expect(parse('+Infinity')[0]).toMatchObject({
+      type: 'NUMBER',
+      value: '+Infinity',
     } satisfies Partial<IToken>);
     expect(parse('-Infinity')[0]).toMatchObject({
       type: 'NUMBER',
@@ -32,6 +40,14 @@ describe('test ts lexer', () => {
     expect(parse('NaN')[0]).toMatchObject({
       type: 'NUMBER',
       value: 'NaN',
+    } satisfies Partial<IToken>);
+    expect(parse('+NaN')[0]).toMatchObject({
+      type: 'NUMBER',
+      value: '+NaN',
+    } satisfies Partial<IToken>);
+    expect(parse('-NaN')[0]).toMatchObject({
+      type: 'NUMBER',
+      value: '-NaN',
     } satisfies Partial<IToken>);
     expect(() => parse('1.e+5.')).toThrowError(`unexpected token '.'`);
     expect(() => parse('1.e+5-2')).toThrowError(`unexpected token '-'`);
@@ -45,7 +61,6 @@ describe('test ts lexer', () => {
     expect(() => parse('0x')).toThrowError(`unexpected token ''`);
     expect(() => parse('0xg')).toThrowError(`unexpected token 'g'`);
     expect(() => parse('0x')).toThrowError(`unexpected token ''`);
-    expect(() => parse('-NaN')).toThrowError(`unexpected token 'N'`);
   });
 
   it('parse string', () => {
@@ -78,21 +93,15 @@ describe('test ts lexer', () => {
 
   it('parse comment', () => {
     const commentTest0 = parse(`//❤好❤🎼abcde ❤好❤🎼\n123`);
+    expect(commentTest0.length).toBe(1);
     expect(commentTest0[0]).toMatchObject({
-      type: 'COMMENT',
-      value: '❤好❤🎼abcde ❤好❤🎼',
-    } satisfies Partial<IToken>);
-    expect(commentTest0[1]).toMatchObject({
       type: 'NUMBER',
       value: '123',
     } satisfies Partial<IToken>);
 
     const commentTest1 = parse(`/*❤好❤🎼abcde ❤好❤🎼\n123\n456***\\ \n*/123`);
+    expect(commentTest1.length).toBe(1);
     expect(commentTest1[0]).toMatchObject({
-      type: 'COMMENT',
-      value: '❤好❤🎼abcde ❤好❤🎼\n123\n456***\\ \n',
-    } satisfies Partial<IToken>);
-    expect(commentTest1[1]).toMatchObject({
       type: 'NUMBER',
       value: '123',
     } satisfies Partial<IToken>);

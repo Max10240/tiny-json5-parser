@@ -63,15 +63,17 @@ export class Parser {
 
     const object: Record<string, JSON> = {};
 
-    while (!this.isAtEnd() && this.check('STRING')) {
-      const key = this.consume('STRING').value;
+    while (!this.isAtEnd() && (
+      this.check('STRING', 'IDENTIFIER')
+      || (this.check('NUMBER') && ['Infinity', 'NaN'].includes(this.peek().value))
+    )) {
+      const key = this.advance().value;
       this.consume('COLON');
       const value = this.parseJson();
 
       object[key] = value;
 
-      if (this.match('COMMA')) continue;
-      break;
+      if (!this.match('COMMA')) break;
     }
 
     this.consume('R_BRACE');
@@ -87,8 +89,7 @@ export class Parser {
     while (!(this.isAtEnd() || this.check('R_S_BRACE'))) {
       array.push(this.parseJson());
 
-      if (this.match('COMMA')) continue;
-      break;
+      if (!this.match('COMMA')) break;
     }
 
     this.consume('R_S_BRACE');
@@ -99,7 +100,7 @@ export class Parser {
   protected parseNumber() {
     const token = this.consume('NUMBER');
 
-    return token.value.startsWith('0x') ? parseInt(token.value.slice(2)) : +token.value;
+    return token.value.startsWith('0x') ? parseInt(token.value.slice(2), 16) : +token.value;
   }
 
   protected createParseError() {

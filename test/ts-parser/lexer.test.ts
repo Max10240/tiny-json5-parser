@@ -77,19 +77,22 @@ describe('test ts lexer', () => {
       type: 'IDENTIFIER',
       value: 'identifierName'
     } satisfies Partial<IToken>);
-  });
-  expect(parse(`$_abc`)[0].value).toBe(`$_abc`);
-  expect(parse(`_$abc`)[0].value).toBe(`_$abc`);
+    expect(parse(`$_abc`)[0].value).toBe(`$_abc`);
+    expect(parse(`_$abc`)[0].value).toBe(`_$abc`);
+    expect(parse(`好_$abc\u200D\u200D`)[0].value).toBe(`好_$abc\u200D\u200D`);
 
-  const num_identifier = parse(`0_$`);
-  expect(num_identifier[0]).toMatchObject({
-    type: 'NUMBER',
-    value: '0',
-  } satisfies Partial<IToken>);
-  expect(num_identifier[1]).toMatchObject({
-    type: 'IDENTIFIER',
-    value: '_$',
-  } satisfies Partial<IToken>);
+    const num_identifier = parse(`0_$`);
+    expect(num_identifier[0]).toMatchObject({
+      type: 'NUMBER',
+      value: '0',
+    } satisfies Partial<IToken>);
+    expect(num_identifier[1]).toMatchObject({
+      type: 'IDENTIFIER',
+      value: '_$',
+    } satisfies Partial<IToken>);
+
+    expect(() => parse(`\u200D\u200D`)).toThrowError(`unexpected token`);
+  });
 
   it('parse comment', () => {
     const commentTest0 = parse(`//❤好❤🎼abcde ❤好❤🎼\n123`);

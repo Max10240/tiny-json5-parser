@@ -1,6 +1,7 @@
 {
   "include": [
     "src/",
+    "lib/",
     "test/",
     "vitest.config.ts"
   ],

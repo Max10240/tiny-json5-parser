@@ -1,3 +1,5 @@
+import { ID_START, ID_CONTINUE } from '../../lib/unicode';
+
 export type TTokenType =
   'L_BRACE'
   | 'R_BRACE'
@@ -396,15 +398,15 @@ export class Lexer {
   }
 
   protected isIdentifierNameStart(char: string) {
-    return '_$'.includes(char) || (char.toUpperCase().charCodeAt(0) >= 65 && char.toUpperCase().charCodeAt(0) <= 90);
+    return '_$'.includes(char) || (char.toUpperCase() >= 'A' && char.toUpperCase() <= 'Z') || ID_START.test(char);
   }
 
   protected isIdentifierNamePart(char: string) {
-    return this.isIdentifierNameStart(char) || this.isNumber(char);
+    return this.isIdentifierNameStart(char) || this.isNumber(char) || '\u200D\u200D'.includes(char) || ID_CONTINUE.test(char);
   }
 
   protected isHex(char: string) {
-    return this.isNumber(char) || (char.toUpperCase().charCodeAt(0) >= 65 && char.toUpperCase().charCodeAt(0) <= 70);
+    return this.isNumber(char) || (char.toUpperCase() >= 'A' && char.toUpperCase() <= 'F');
   }
 
   protected createParseError() {

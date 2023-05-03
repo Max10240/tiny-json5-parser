@@ -2,7 +2,7 @@ import { Lexer, Parser } from "@/parse-ts";
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parse as json5Parse } from 'json5';
-import { getDirName } from "../utils";
+import { getDirName } from '../utils';
 
 function parse(input: string) {
   return new Parser(new Lexer(input).parse()).parse();
@@ -26,6 +26,7 @@ describe('test ts parser', () => {
     expect(parse(`{a: 1}`), 'without trailing comma').toStrictEqual({ a: 1 });
     expect(parse(`{true1: 1}`), 'keyword like key').toStrictEqual({ true1: 1 });
     expect(parse(`{Infinity: 1, NaN: 2}`), 'special key').toStrictEqual({ Infinity: 1, NaN: 2 });
+    expect(parse(`{好: 1, NaN: 2}`), 'special key').toStrictEqual({ '好': 1, NaN: 2 });
     expect(parse(`{a: 1, 'b- cde❤好❤🎼': 2, "❤好❤🎼": 3,}`), 'single quote & double quote & trailing comma').toStrictEqual({
       a: 1,
       'b- cde❤好❤🎼': 2,

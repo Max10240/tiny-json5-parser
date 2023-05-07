@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest",
-    "dev": "{ tsc -w & } && { tsc-alias -w; }",
-    "echo": "echo 1"
+    "dev": "tsc -w & tsc-alias -w"
   },
   "keywords": [],
   "author": "",

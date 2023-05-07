@@ -1,5 +1,4 @@
 import { Lexer, type IToken } from "@/index";
-import { expect } from "vitest";
 
 function parse(input: string) {
   return new Lexer(input).parse();

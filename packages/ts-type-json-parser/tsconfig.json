@@ -6,6 +6,8 @@
     "vitest.config.ts"
   ],
   "compilerOptions": {
-    "baseUrl": "./"
+    "baseUrl": "./",
+    "skipLibCheck": false,
+    "noErrorTruncation": true
   }
 }

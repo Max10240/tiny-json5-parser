@@ -15,8 +15,6 @@ type Position = {
   end: number;
 };
 
-type StringToNumber<T extends string> = T extends `${infer N extends number}` ? N : never;
-
 export class ParseError extends Error {
   toString() {
     return `ParseError: ${this.message}`;

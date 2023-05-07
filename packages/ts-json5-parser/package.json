@@ -1,0 +1,17 @@
+{
+  "name": "tiny-json5-parser",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "test": "vitest",
+    "dev:tsc": "TSCONFIG_PATH=tsconfig.emit.json; tsc -w -p $TSCONFIG_PATH & tsc-alias -w -p $TSCONFIG_PATH",
+    "build": "TSCONFIG_PATH=tsconfig.emit.json; tsc -p $TSCONFIG_PATH && tsc-alias -p $TSCONFIG_PATH"
+  },
+  "keywords": ["json5", "parser", "typescript"],
+  "author": "Baolong Wang <wangbaolong36@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "json5": "^2.2.3"
+  }
+}

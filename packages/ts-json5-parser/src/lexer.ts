@@ -1,4 +1,4 @@
-import { ID_START, ID_CONTINUE } from '../../lib/unicode';
+import { ID_START, ID_CONTINUE } from '../lib/unicode';
 
 export type TTokenType =
   'L_BRACE'

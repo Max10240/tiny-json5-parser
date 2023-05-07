@@ -1,4 +1,4 @@
-import { Lexer, type IToken } from "@/parse-ts";
+import { Lexer, type IToken } from "@/index";
 import { expect } from "vitest";
 
 function parse(input: string) {

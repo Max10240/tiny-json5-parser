@@ -1,0 +1,10 @@
+{
+  "name": "ts-type-json-parser",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+  },
+  "keywords": [],
+  "author": "Baolong Wang <wangbaolong36@gmail.com>",
+  "license": "MIT"
+}

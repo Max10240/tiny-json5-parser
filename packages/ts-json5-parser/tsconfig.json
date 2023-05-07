@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.ide.base",
+  "include": [
+    "src/",
+    "lib/",
+    "test/",
+    "vitest.config.ts"
+  ],
+  "compilerOptions": {
+    "baseUrl": "./"
+  }
+}

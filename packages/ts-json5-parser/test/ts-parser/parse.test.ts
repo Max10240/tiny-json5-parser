@@ -1,4 +1,4 @@
-import { Lexer, Parser } from "@/parse-ts";
+import { Lexer, Parser } from "@/index";
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parse as json5Parse } from 'json5';

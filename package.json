@@ -1,18 +1,18 @@
 {
-  "name": "json-parse-by-ts-type",
+  "name": "json-parser-mono",
   "version": "1.0.0",
   "description": "",
-  "type": "module",
+  "workspaces": ["packages/*"],
+  "devDependencies": {
+    "typescript": "^5.0.4",
+    "tsc-alias": "^1.8.6",
+    "vitest": "^0.30.1",
+    "npm-run-all": "^4.1.5"
+  },
   "scripts": {
-    "test": "vitest",
-    "dev": "tsc -w & tsc-alias -w"
+    "update": "bash -c 'rm -rf {.,packages/*}/node_modules/' && npm i"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "json5": "^2.2.3",
-    "typescript": "^5.0.4",
-    "vitest": "^0.30.1"
-  }
+  "author": "Baolong Wang <wangbaolong36@gmail.com>",
+  "license": "MIT"
 }

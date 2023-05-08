@@ -9,10 +9,20 @@ import type {
   MatchSequence,
   Lexer,
   MatchToken,
+  SliceFrom,
+  Parser,
 } from '@/index';
-import { expectTypeOf } from "vitest";
 
 describe('test ts type parser', () => {
+  describe('test utils', () => {
+    it('test SliceStart', () => {
+      expectTypeOf<SliceFrom<[1, 3, 4, 5]>>().toEqualTypeOf<[1, 3, 4, 5]>();
+      expectTypeOf<SliceFrom<[1, 3, 4, 5], 2>>().toEqualTypeOf<[4, 5]>();
+      expectTypeOf<SliceFrom<[1, 3, 4, 5], 4>>().toEqualTypeOf<[]>();
+      expectTypeOf<SliceFrom<[1, 3, 4, 5], 5>>().toEqualTypeOf<[]>();
+    });
+  });
+
   describe('test lexer', () => {
     it('test MatchNumber', () => {
       expectTypeOf<MatchNumber<'12.456e-43==='>>().toEqualTypeOf<[true, "12.456e-43", "==="]>();
@@ -77,6 +87,128 @@ describe('test ts type parser', () => {
       expectTypeOf<MatchToken<['R_S_BRACE', 'NUMBER'], Tokens0>>().toEqualTypeOf<[false]>();
       expectTypeOf<MatchToken<['R_S_BRACE', 'NUMBER'], []>>().toEqualTypeOf<[false]>();
       expectTypeOf<MatchToken<['L_S_BRACE', 'NUMBER', 'COMMA', 'COMMA'], Tokens0>>().toEqualTypeOf<[false]>();
+    });
+
+    it('test Parser', () => {
+      expectTypeOf<Parser<Lexer<'{"x": {"a": ["\\n\\r123", 123.4567, 123.456e-78, { "90": [false, true, null] }]}}'>[1]>[1]>().toEqualTypeOf<{
+        x: {
+          a: ['\n\r123', 123.4567, number & { value: '123.456e-78' }, { '90': [false, true, null] }]
+        }
+      }>();
+      expectTypeOf<Parser<Lexer<'{"x": {"a": 2}}'>[1]>[1]>().toEqualTypeOf<{ x: { a: 2 } }>();
+
+      type Pkg = {
+        "name": "tiny-json5-parser",
+        "version": "1.0.0",
+        "description": "",
+        "type": "module",
+        "scripts": {
+          "test": "vitest",
+          "dev:tsc": "TSCONFIG_PATH=tsconfig.emit.json; tsc -w -p $TSCONFIG_PATH & tsc-alias -w -p $TSCONFIG_PATH",
+          "build": "TSCONFIG_PATH=tsconfig.emit.json; tsc -p $TSCONFIG_PATH && tsc-alias -p $TSCONFIG_PATH"
+        },
+        "keywords": ["json5", "parser", "typescript"],
+        "author": "Baolong Wang <wangbaolong36@gmail.com>",
+        "license": "MIT",
+        "devDependencies": {
+          "json5": "^2.2.3"
+        }
+      };
+      type PkgStr = `{
+        "name": "tiny-json5-parser",
+        "version": "1.0.0",
+        "description": "",
+        "type": "module",
+        "scripts": {
+          "test": "vitest",
+          "dev:tsc": "TSCONFIG_PATH=tsconfig.emit.json; tsc -w -p $TSCONFIG_PATH & tsc-alias -w -p $TSCONFIG_PATH",
+          "build": "TSCONFIG_PATH=tsconfig.emit.json; tsc -p $TSCONFIG_PATH && tsc-alias -p $TSCONFIG_PATH"
+        },
+        "keywords": ["json5", "parser", "typescript"],
+        "author": "Baolong Wang <wangbaolong36@gmail.com>",
+        "license": "MIT",
+        "devDependencies": {
+          "json5": "^2.2.3"
+        }
+      }`;
+      expectTypeOf<Parser<Lexer<PkgStr>[1]>[1]>().toEqualTypeOf<Pkg>();
+
+      type TestData1 = {
+        "problems": [{
+          "Diabetes": [{
+            "medications": [{
+              "medicationsClasses": [{
+                "className": [{
+                  "associatedDrug": [{
+                    "name": "asprin",
+                    "dose": "",
+                    "strength": "500 mg"
+                  }],
+                  "associatedDrug#2": [{
+                    "name": "somethingElse",
+                    "dose": "",
+                    "strength": "500 mg"
+                  }]
+                }],
+                "className2": [{
+                  "associatedDrug": [{
+                    "name": "asprin",
+                    "dose": "",
+                    "strength": "500 mg"
+                  }],
+                  "associatedDrug#2": [{
+                    "name": "somethingElse",
+                    "dose": "",
+                    "strength": "500 mg"
+                  }]
+                }]
+              }]
+            }],
+            "labs": [{
+              "missing_field": "missing_value"
+            }]
+          }],
+          "Asthma": [{}]
+        }]
+      };
+      type TestDataStr1 = `{
+        "problems": [{
+            "Diabetes":[{
+                "medications":[{
+                    "medicationsClasses":[{
+                        "className":[{
+                            "associatedDrug":[{
+                                "name":"asprin",
+                                "dose":"",
+                                "strength":"500 mg"
+                            }],
+                            "associatedDrug#2":[{
+                                "name":"somethingElse",
+                                "dose":"",
+                                "strength":"500 mg"
+                            }]
+                        }],
+                        "className2":[{
+                            "associatedDrug":[{
+                                "name":"asprin",
+                                "dose":"",
+                                "strength":"500 mg"
+                            }],
+                            "associatedDrug#2":[{
+                                "name":"somethingElse",
+                                "dose":"",
+                                "strength":"500 mg"
+                            }]
+                        }]
+                    }]
+                }],
+                "labs":[{
+                    "missing_field": "missing_value"
+                }]
+            }],
+            "Asthma":[{}]
+        }]}`;
+      // expectTypeOf<Parser<Lexer<TestDataStr1>[1]>[1]>().toEqualTypeOf<TestData1>();
     });
   });
 });

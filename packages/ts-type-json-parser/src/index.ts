@@ -31,6 +31,11 @@ interface IToken {
 
 type Cast<T extends unknown, To> = T extends To ? T : never;
 type StringToNumber<T extends string> = T extends `${infer N extends number}` ? N : never;
+type SliceFrom<T extends unknown[], Start extends number = 0, Filtered extends unknown[] = []> = Filtered['length'] extends Start
+  ? T
+  : T extends [infer H, ...infer Rest]
+    ? SliceFrom<Rest, Start, [...Filtered, H]>
+    : [];
 
 type StartsWith<Start extends string, S extends string> = S extends `${Start}${infer R}` ? true : boolean;
 type Match<Pattern extends string, S extends string> = S extends `${infer P extends Pattern}${infer R}` ? [true, P, R] : [false, '', S];
@@ -140,29 +145,50 @@ type MatchAnyToken<Type extends TTokenType, T extends IToken[]> = (Type extends 
     : Result
   : never;
 
-type MatchKVPair<T extends IToken[], Result extends Record<string, unknown> = {}> = MatchToken<['R_BRACE'], T>[0] extends true
-  ? [true, Result, T]
-  : MatchToken<['STRING', 'COLON'], T> extends infer KeyColonResult extends ([true, IToken[]] | [false])
-    ? KeyColonResult[0] extends true
-      ? Parser<Cast<KeyColonResult[1], IToken[]>> extends infer ValueResult extends [boolean, unknown, IToken[], string?]
-        ? ValueResult[0] extends true
-          ? MatchKVPair<ValueResult[2], Result & { [P in T[0]['value']]: ValueResult[1] }>
-          : [false, Result, [], `error while parsing value of KV pair, current: ${T[0]['value']}:`]
-        : never
-      : [false, Result, [], `error while parsing key of KV pair, current: ${T[0]['value']}:`]
-    : never;
+type MatchKVPair<T extends IToken[], Result extends Record<string, unknown> = {}> = MatchToken<['STRING', 'COLON'], T> extends infer KeyColonResult extends ([true, IToken[]] | [false])
+  ? KeyColonResult[0] extends true
+    ? Parser<SliceFrom<T, 2>> extends infer ValueResult extends [boolean, unknown, IToken[], string?]
+      ? ValueResult[0] extends true
+        ? MatchToken<['COMMA'], ValueResult[2]>[0] extends true
+          ? MatchKVPair<SliceFrom<ValueResult[2], 1>, Result & { [P in T[0]['value']]: ValueResult[1] }>
+          : [true, Result & { [P in T[0]['value']]: ValueResult[1] }, ValueResult[2]]
+        : [false, Result, [], `error while parsing value of KV pair, current: ${T[0]['value']}:`]
+      : never
+    : [false, Result, [], `error while parsing key of KV pair, current: ${T[0]['value']}:`]
+  : never;
 
 type ParseObject<T extends IToken[]> = MatchToken<['L_BRACE'], T>[0] extends true
-  ? MatchKVPair<Cast<MatchToken<['L_BRACE'], T>[1], IToken[]>> extends infer KVPairResult extends [boolean, unknown, IToken[], string?]
-    ? KVPairResult[0] extends true
-      ? MatchToken<['R_BRACE'], KVPairResult[2]>[0] extends true
-        ? [true, KVPairResult[1], MatchToken<['R_BRACE'], Cast<MatchToken<['R_BRACE'], KVPairResult[2]>[1], IToken[]>>[1]]
-        : [false, `expected '}' at ${KVPairResult[2][0]['value']}`]
-      : [false, KVPairResult[3]]
-    : never
+  ? MatchToken<['L_BRACE', 'R_BRACE'], T>[0] extends true
+    ? [true, {}, SliceFrom<T, 2>]
+    : MatchKVPair<SliceFrom<T, 1>> extends infer KVPairResult extends [boolean, unknown, IToken[], string?]
+      ? KVPairResult[0] extends true
+        ? MatchToken<['R_BRACE'], KVPairResult[2]>[0] extends true
+          ? [true, KVPairResult[1], SliceFrom<KVPairResult[2], 1>]
+          : [false, `expected '}' at ${KVPairResult[2][0]['value']}`]
+        : [false, T]
+      : never
   : [false, `expected '{' at ${T[0]['value']}`];
 
-type ParseArray<T extends IToken[]> = any;
+type ParseArrayElems<T extends IToken[], Result extends unknown[] = []> =
+  Parser<T> extends infer ElemR extends [boolean, unknown, IToken[], string?]
+    ? ElemR[0] extends true
+      ? MatchToken<['COMMA'], ElemR[2]>[0] extends true
+        ? ParseArrayElems<SliceFrom<ElemR[2], 1>, [...Result, ElemR[1]]>
+        : [true, [...Result, ElemR[1]], ElemR[2]]
+      : [false, Result, [], `error while parsing array elem, current: ${T[0]['value']}:`]
+    : never;
+
+type ParseArray<T extends IToken[]> = MatchToken<['L_S_BRACE'], T>[0] extends true
+  ? MatchToken<['L_S_BRACE', 'R_S_BRACE'], T>[0] extends true
+    ? [true, [], SliceFrom<T, 2>]
+    : ParseArrayElems<SliceFrom<T, 1>> extends infer ArrElemsR extends [boolean, unknown[], IToken[], string?]
+      ? ArrElemsR[0] extends true
+        ? MatchToken<['R_S_BRACE'], ArrElemsR[2]>[0] extends true
+          ? [true, ArrElemsR[1], SliceFrom<ArrElemsR[2], 1>]
+          : [false, never, T, `expected ']' behind elems`]
+        : [false, never, T, ArrElemsR[3]]
+      : never
+  : [false, never, T, `expected '[' at start`];
 
 type SimpleLiteralValueMap = {
   TRUE: true;
@@ -173,7 +199,7 @@ type GetSimpleLiteralValue<T extends IToken> = T['type'] extends 'STRING'
   ? T['value']
   : T['type'] extends 'NUMBER'
     ? number extends StringToNumber<T['value']>
-      ? T['value'] & { type: number }
+      ? number & { value: T['value'] }
       : StringToNumber<T['value']>
     : SimpleLiteralValueMap[Cast<T['type'], keyof SimpleLiteralValueMap>];
 
@@ -204,4 +230,6 @@ export type {
   MatchSimpleToken,
   Lexer,
   MatchToken,
+  SliceFrom,
+  Parser,
 };

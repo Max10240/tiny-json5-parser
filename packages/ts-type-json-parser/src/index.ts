@@ -29,39 +29,57 @@ interface IToken {
   value: string;
 }
 
-type Cast<T extends unknown, To> = T extends To ? T : never;
+type IsExtends<T, U> = T extends U ? true : false;
+type Cast<T, To> = T extends To ? T : never;
 type StringToNumber<T extends string> = T extends `${infer N extends number}` ? N : never;
 type SliceFrom<T extends unknown[], Start extends number = 0, Filtered extends unknown[] = []> = Filtered['length'] extends Start
   ? T
   : T extends [infer H, ...infer Rest]
     ? SliceFrom<Rest, Start, [...Filtered, H]>
     : [];
-
+type SliceStrFrom<T extends string, Start extends number = 0, Counter extends 0[] = []> = Counter['length'] extends Start
+  ? T
+  : T extends `${infer H}${infer Rest}`
+    ? SliceStrFrom<Rest, Start, [...Counter, 0]>
+    : '';
 type StartsWith<Start extends string, S extends string> = S extends `${Start}${infer R}` ? true : boolean;
+
+type JsonNumber<T extends string> = number & { value: T };
+
 type Match<Pattern extends string, S extends string> = S extends `${infer P extends Pattern}${infer R}` ? [true, P, R] : [false, '', S];
 type MatchSequence<Pattern extends string, S extends string> = S extends `${Pattern}${infer R}` ? [true, Pattern, R] : [false, '', S];
 
 type MatchPureNumber<S extends string, Result extends string = ''> = S extends `${infer H extends number}${infer R}`
   ? MatchPureNumber<R, `${Result}${H}`>
   : Result extends ''
-    ? [false, '', S]
+    ? [false, '', `${Result}${S}`]
     : [true, Result, S];
 
-type MatchNumber<S extends string, Result extends string = ''> = MatchPureNumber<S>[0] extends true
-  ? Match<'.', MatchPureNumber<S>[2]>[0] extends true
-    ? MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[0] extends true
-      ? Match<'e', MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[2]>[0] extends true
-        ? Match<'+' | '-', Match<'e', MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[2]>[2]>[0] extends true
-          ? MatchPureNumber<Match<'+' | '-', Match<'e', MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[2]>[2]>[2]>[0] extends true
-            ? [true, `${MatchPureNumber<S>[1]}.${MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[1]}e${Match<'+' | '-', Match<'e', MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[2]>[2]>[1]}${MatchPureNumber<Match<'+' | '-', Match<'e', MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[2]>[2]>[2]>[1]}`, MatchPureNumber<Match<'+' | '-', Match<'e', MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[2]>[2]>[2]>[2]]
-            : [false, '', S, `expect 'number' after ${MatchPureNumber<S>[1]}.${MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[1]}e${Match<'+' | '-', Match<'e', MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[2]>[2]>[1]}`]
-          : MatchPureNumber<Match<'e', MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[2]>[2]>[0] extends true
-            ? [true, `${MatchPureNumber<S>[1]}.${MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[1]}e${MatchPureNumber<Match<'e', MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[2]>[2]>[1]}`, MatchPureNumber<Match<'e', MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[2]>[2]>[2]]
-            : [false, '', S, `expect number after ${MatchPureNumber<S>[1]}.${MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[1]}e`]
-        : [true, `${MatchPureNumber<S>[1]}.${MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[1]}`, MatchPureNumber<Match<'.', MatchPureNumber<S>[2]>[2]>[2]]
-      : [false, '', S, `expect number after ${MatchPureNumber<S>[1]}.`]
-    : [true, `${MatchPureNumber<S>[1]}`, MatchPureNumber<S>[2]]
-  : [false, '', S, `expect number at start`];
+type MatchFloatNum<S extends string, Result extends string = ''> = MatchPureNumber<S> extends infer IntR extends [boolean, string, string]
+  ? IntR[0] extends true
+    ? Match<'.', IntR[2]>[0] extends true
+      ? MatchPureNumber<SliceStrFrom<IntR[2], 1>> extends infer DecimalR extends [boolean, string, string]
+        ? DecimalR[0] extends true
+          ? [true, `${IntR[1]}.${DecimalR[1]}`, DecimalR[2]]
+          : [false, '', S, `expected number behind '.' at ${SliceStrFrom<IntR[2], 1>}`]
+        : never
+      : [true, IntR[1], IntR[2]]
+    : [false, '', S, `expected number at ${S}`]
+  : never;
+
+type MatchNumber<S extends string> = MatchFloatNum<S> extends infer FloatR extends [boolean, string, string, string?]
+  ? FloatR[0] extends true
+    ? Match<'e', FloatR[2]>[0] extends true
+      ? Match<'+' | '-', SliceStrFrom<FloatR[2], 1>> extends infer ExpoSignR extends [boolean, string, string]
+        ? MatchPureNumber<ExpoSignR[2]> extends infer ExpoR extends [boolean, string, string]
+          ? ExpoR[0] extends true
+            ? [true, `${FloatR[1]}e${ExpoSignR[1]}${ExpoR[1]}`, ExpoR[2]]
+            : [false, '', S, `expected expo behind 'e' at ${ExpoSignR[2]}`]
+          : never
+        : never
+      : [true, FloatR[1], FloatR[2]]
+    : [false, '', S, `expected number at ${S}`]
+  : never;
 
 
 type EscapeCharMap = {
@@ -80,9 +98,11 @@ type MatchStringContent<S extends string, Result extends string = ''> = Match<'"
   : Match<'\r' | '\n', S>[0] extends true
     ? [false, '', `${Result}${S}`, `unexpected token after ${Result}`]
     : Match<'\\', S>[0] extends true
-      ? Match<string, Match<'\\', S>[2]>[1] extends keyof EscapeCharMap
-        ? MatchStringContent<Match<string, Match<'\\', S>[2]>[2], `${Result}${EscapeCharMap[Match<string, Match<'\\', S>[2]>[1]]}`>
-        : [false, '', `${Result}${S}`, `unexpected escape char after ${Result}`]
+      ? Match<string, Match<'\\', S>[2]> extends infer EscapeCharR extends [boolean, string, string]
+        ? [EscapeCharR[0], IsExtends<EscapeCharR[1], keyof EscapeCharMap>][number] extends true
+          ? MatchStringContent<EscapeCharR[2], `${Result}${EscapeCharMap[EscapeCharR[1] & keyof EscapeCharMap]}`>
+          : [false, '', `${Result}${S}`, `unexpected escape char after ${Result}`]
+        : never
       : Match<string, S>[0] extends true
         ? MatchStringContent<Match<string, S>[2], `${Result}${Match<string, S>[1]}`>
         : [false, '', `${Result}${S}`, `unexpected EOF after ${Result}`];
@@ -145,17 +165,18 @@ type MatchAnyToken<Type extends TTokenType, T extends IToken[]> = (Type extends 
     : Result
   : never;
 
-type MatchKVPair<T extends IToken[], Result extends Record<string, unknown> = {}> = MatchToken<['STRING', 'COLON'], T> extends infer KeyColonResult extends ([true, IToken[]] | [false])
-  ? KeyColonResult[0] extends true
-    ? Parser<SliceFrom<T, 2>> extends infer ValueResult extends [boolean, unknown, IToken[], string?]
-      ? ValueResult[0] extends true
-        ? MatchToken<['COMMA'], ValueResult[2]>[0] extends true
-          ? MatchKVPair<SliceFrom<ValueResult[2], 1>, Result & { [P in T[0]['value']]: ValueResult[1] }>
-          : [true, Result & { [P in T[0]['value']]: ValueResult[1] }, ValueResult[2]]
-        : [false, Result, [], `error while parsing value of KV pair, current: ${T[0]['value']}:`]
-      : never
-    : [false, Result, [], `error while parsing key of KV pair, current: ${T[0]['value']}:`]
-  : never;
+type MatchKVPair<T extends IToken[], Result extends Record<string, unknown> = {}> =
+  MatchToken<['STRING', 'COLON'], T> extends infer KeyColonResult extends ([true, IToken[]] | [false])
+    ? KeyColonResult[0] extends true
+      ? Parser<SliceFrom<T, 2>> extends infer ValueResult extends [boolean, unknown, IToken[], string?]
+        ? ValueResult[0] extends true
+          ? MatchToken<['COMMA'], ValueResult[2]>[0] extends true
+            ? MatchKVPair<SliceFrom<ValueResult[2], 1>, Result & { [P in T[0]['value']]: ValueResult[1] }>
+            : [true, Result & { [P in T[0]['value']]: ValueResult[1] }, ValueResult[2]]
+          : [false, Result, [], `error while parsing value of KV pair, current: ${T[0]['value']}:`]
+        : never
+      : [false, Result, [], `error while parsing key of KV pair, current: ${T[0]['value']}:`]
+    : never;
 
 type ParseObject<T extends IToken[]> = MatchToken<['L_BRACE'], T>[0] extends true
   ? MatchToken<['L_BRACE', 'R_BRACE'], T>[0] extends true
@@ -195,15 +216,17 @@ type SimpleLiteralValueMap = {
   FALSE: false;
   NULL: null;
 };
+
 type GetSimpleLiteralValue<T extends IToken> = T['type'] extends 'STRING'
   ? T['value']
   : T['type'] extends 'NUMBER'
     ? number extends StringToNumber<T['value']>
-      ? number & { value: T['value'] }
+      ? JsonNumber<T['value']>
       : StringToNumber<T['value']>
     : SimpleLiteralValueMap[Cast<T['type'], keyof SimpleLiteralValueMap>];
 
-type Parser<T extends IToken[]> = MatchAnyToken<'STRING' | 'NUMBER' | 'NULL' | 'TRUE' | 'FALSE', T> extends infer SimpleLiteralResult extends unknown[]
+type Parser<T extends IToken[]> =
+  MatchAnyToken<'STRING' | 'NUMBER' | 'NULL' | 'TRUE' | 'FALSE', T> extends infer SimpleLiteralResult extends unknown[]
   ? SimpleLiteralResult[0] extends true
     ? [true, GetSimpleLiteralValue<T[0]>, SimpleLiteralResult[2]]
     : ParseObject<T> extends infer ObjectResult extends unknown[]
@@ -217,8 +240,6 @@ type Parser<T extends IToken[]> = MatchAnyToken<'STRING' | 'NUMBER' | 'NULL' | '
       : never
   : never;
 
-type X = Parser<Lexer<'{"x": {"a": 2}}'>[1]>;
-
 export type {
   StartsWith,
   Match,
@@ -231,5 +252,7 @@ export type {
   Lexer,
   MatchToken,
   SliceFrom,
+  SliceStrFrom,
+  JsonNumber,
   Parser,
 };

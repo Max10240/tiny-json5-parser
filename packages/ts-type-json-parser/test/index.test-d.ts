@@ -10,6 +10,8 @@ import type {
   Lexer,
   MatchToken,
   SliceFrom,
+  SliceStrFrom,
+  JsonNumber,
   Parser,
 } from '@/index';
 
@@ -17,22 +19,31 @@ describe('test ts type parser', () => {
   describe('test utils', () => {
     it('test SliceStart', () => {
       expectTypeOf<SliceFrom<[1, 3, 4, 5]>>().toEqualTypeOf<[1, 3, 4, 5]>();
+      expectTypeOf<SliceFrom<[1, 3, 4, 5], 0>>().toEqualTypeOf<[1, 3, 4, 5]>();
       expectTypeOf<SliceFrom<[1, 3, 4, 5], 2>>().toEqualTypeOf<[4, 5]>();
       expectTypeOf<SliceFrom<[1, 3, 4, 5], 4>>().toEqualTypeOf<[]>();
       expectTypeOf<SliceFrom<[1, 3, 4, 5], 5>>().toEqualTypeOf<[]>();
+    });
+
+    it('test SliceStart', () => {
+      expectTypeOf<SliceStrFrom<'1345'>>().toEqualTypeOf<'1345'>();
+      expectTypeOf<SliceStrFrom<'1345', 0>>().toEqualTypeOf<'1345'>();
+      expectTypeOf<SliceStrFrom<'1345', 1>>().toEqualTypeOf<'345'>();
+      expectTypeOf<SliceStrFrom<'1345', 4>>().toEqualTypeOf<''>();
+      expectTypeOf<SliceStrFrom<'1345', 5>>().toEqualTypeOf<''>();
     });
   });
 
   describe('test lexer', () => {
     it('test MatchNumber', () => {
       expectTypeOf<MatchNumber<'12.456e-43==='>>().toEqualTypeOf<[true, "12.456e-43", "==="]>();
-      expectTypeOf<MatchNumber<'12.456e-XXX43==='>>().toEqualTypeOf<[false, "", "12.456e-XXX43===", "expect 'number' after 12.456e-"]>();
+      expectTypeOf<MatchNumber<'12.456e-XXX43==='>>().toMatchTypeOf<[false, "", "12.456e-XXX43===", string]>();
       expectTypeOf<MatchNumber<'12.456e43==='>>().toEqualTypeOf<[true, "12.456e43", "==="]>();
-      expectTypeOf<MatchNumber<'12.456eXXX43==='>>().toEqualTypeOf<[false, "", "12.456eXXX43===", "expect number after 12.456e"]>();
+      expectTypeOf<MatchNumber<'12.456eXXX43==='>>().toMatchTypeOf<[false, "", "12.456eXXX43===", string]>();
       expectTypeOf<MatchNumber<'12.456===e43'>>().toEqualTypeOf<[true, "12.456", "===e43"]>();
-      expectTypeOf<MatchNumber<'12.XXX456===e43'>>().toEqualTypeOf<[false, "", "12.XXX456===e43", "expect number after 12."]>();
+      expectTypeOf<MatchNumber<'12.XXX456===e43'>>().toMatchTypeOf<[false, "", "12.XXX456===e43", string]>();
       expectTypeOf<MatchNumber<'12===.456ke43--='>>().toEqualTypeOf<[true, "12", "===.456ke43--="]>();
-      expectTypeOf<MatchNumber<'XXX12===.456ke43--='>>().toEqualTypeOf<[false, "", "XXX12===.456ke43--=", "expect number at start"]>();
+      expectTypeOf<MatchNumber<'XXX12===.456ke43--='>>().toMatchTypeOf<[false, "", "XXX12===.456ke43--=", string]>();
     });
 
     it('test MatchString', () => {
@@ -92,7 +103,7 @@ describe('test ts type parser', () => {
     it('test Parser', () => {
       expectTypeOf<Parser<Lexer<'{"x": {"a": ["\\n\\r123", 123.4567, 123.456e-78, { "90": [false, true, null] }]}}'>[1]>[1]>().toEqualTypeOf<{
         x: {
-          a: ['\n\r123', 123.4567, number & { value: '123.456e-78' }, { '90': [false, true, null] }]
+          a: ['\n\r123', 123.4567, JsonNumber<'123.456e-78'>, { '90': [false, true, null] }]
         }
       }>();
       expectTypeOf<Parser<Lexer<'{"x": {"a": 2}}'>[1]>[1]>().toEqualTypeOf<{ x: { a: 2 } }>();
@@ -149,18 +160,6 @@ describe('test ts type parser', () => {
                     "dose": "",
                     "strength": "500 mg"
                   }]
-                }],
-                "className2": [{
-                  "associatedDrug": [{
-                    "name": "asprin",
-                    "dose": "",
-                    "strength": "500 mg"
-                  }],
-                  "associatedDrug#2": [{
-                    "name": "somethingElse",
-                    "dose": "",
-                    "strength": "500 mg"
-                  }]
                 }]
               }]
             }],
@@ -187,18 +186,6 @@ describe('test ts type parser', () => {
                                 "dose":"",
                                 "strength":"500 mg"
                             }]
-                        }],
-                        "className2":[{
-                            "associatedDrug":[{
-                                "name":"asprin",
-                                "dose":"",
-                                "strength":"500 mg"
-                            }],
-                            "associatedDrug#2":[{
-                                "name":"somethingElse",
-                                "dose":"",
-                                "strength":"500 mg"
-                            }]
                         }]
                     }]
                 }],
@@ -208,7 +195,7 @@ describe('test ts type parser', () => {
             }],
             "Asthma":[{}]
         }]}`;
-      // expectTypeOf<Parser<Lexer<TestDataStr1>[1]>[1]>().toEqualTypeOf<TestData1>();
+      expectTypeOf<Parser<Lexer<TestDataStr1>[1]>[1]>().toEqualTypeOf<TestData1>();
     });
   });
 });

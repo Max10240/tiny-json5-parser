@@ -1,6 +1,6 @@
 export {
-  TTokenType,
-  IToken,
+  type TTokenType,
+  type IToken,
   LexerParseError,
   Lexer,
 } from './lexer';

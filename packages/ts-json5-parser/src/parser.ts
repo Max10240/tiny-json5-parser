@@ -1,4 +1,5 @@
 import { IToken, TTokenType } from "./lexer";
+import type { DeepRequire } from "@/types";
 
 type JSON =
   | null

@@ -1,17 +1,50 @@
 {
   "name": "tiny-json5-parser",
-  "version": "1.0.0",
-  "description": "",
   "type": "module",
+  "version": "0.0.1",
+  "description": "a tiny json5 parser",
+  "author": "Baolong Wang <wangbaolong36@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Max10240/tiny-json5-parser.git",
+    "directory": "packages/ts-json5-parser"
+  },
+  "keywords": [
+    "json5",
+    "parser",
+    "typescript"
+  ],
+  "sideEffects": false,
+  "files": [
+    "dist/"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/esm/index.js"
+      }
+    }
+  },
   "scripts": {
     "test": "vitest",
     "dev:tsc": "TSCONFIG_PATH=tsconfig.emit.json; tsc -w -p $TSCONFIG_PATH & tsc-alias -w -p $TSCONFIG_PATH",
-    "build": "TSCONFIG_PATH=tsconfig.emit.json; tsc -p $TSCONFIG_PATH && tsc-alias -p $TSCONFIG_PATH"
+    "build:tsc": "TSCONFIG_PATH=tsconfig.emit.json; tsc -p $TSCONFIG_PATH && tsc-alias -p $TSCONFIG_PATH",
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "clean": "rm -rf ./dist/",
+    "prepublishOnly": "npm run test && npm run clean && npm run build"
   },
-  "keywords": ["json5", "parser", "typescript"],
-  "author": "Baolong Wang <wangbaolong36@gmail.com>",
-  "license": "MIT",
   "devDependencies": {
-    "json5": "^2.2.3"
+    "json5": "^2.2.3",
+    "tsup": "^6.7.0"
   }
 }

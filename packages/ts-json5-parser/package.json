@@ -1,7 +1,7 @@
 {
   "name": "tiny-json5-parser",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "a tiny json5 parser",
   "author": "Baolong Wang <wangbaolong36@gmail.com>",
   "license": "MIT",
@@ -19,29 +19,30 @@
   "files": [
     "dist/"
   ],
-  "main": "./dist/index.js",
-  "module": "./dist/esm/index.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "require": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
+        "default": "./dist/index.cjs"
       },
       "import": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/esm/index.js"
+        "default": "./dist/index.js"
       }
     }
   },
   "scripts": {
     "test": "vitest",
+    "test:ci": "vitest run",
     "dev:tsc": "TSCONFIG_PATH=tsconfig.emit.json; tsc -w -p $TSCONFIG_PATH & tsc-alias -w -p $TSCONFIG_PATH",
     "build:tsc": "TSCONFIG_PATH=tsconfig.emit.json; tsc -p $TSCONFIG_PATH && tsc-alias -p $TSCONFIG_PATH",
     "dev": "tsup --watch",
     "build": "tsup",
     "clean": "rm -rf ./dist/",
-    "prepublishOnly": "npm run test && npm run clean && npm run build"
+    "prepublishOnly": "npm run test:ci && npm run clean && npm run build"
   },
   "devDependencies": {
     "json5": "^2.2.3",

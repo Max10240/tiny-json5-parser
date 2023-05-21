@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "test": "vitest typecheck"
+    "test": "vitest typecheck",
+    "test:ci": "vitest typecheck --run"
   },
   "keywords": [],
   "author": "Baolong Wang <wangbaolong36@gmail.com>",

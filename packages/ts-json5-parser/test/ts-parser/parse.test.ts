@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { Lexer, Parser } from "@/index";
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';

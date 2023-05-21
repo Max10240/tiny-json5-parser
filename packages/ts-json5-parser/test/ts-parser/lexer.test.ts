@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { Lexer, type IToken } from "@/index";
 
 function parse(input: string) {

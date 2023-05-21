@@ -11,8 +11,7 @@
     "skipLibCheck": true,
     "paths": {
       "@/*": ["src/*"]
-    },
-    "types": ["vitest/globals"]
+    }
   },
   "tsc-alias": {
     "resolveFullPaths": true

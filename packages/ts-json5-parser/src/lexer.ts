@@ -164,10 +164,14 @@ export class Lexer {
             this.advance();
             this.advance();
 
+            let matchMultiLineCommentSuccess = false;
+
             while (!this.isAtEnd()) {
               if (this.peek() === '*' && this.lookForward(1) === '/') {
                 this.advance();
                 this.advance();
+
+                matchMultiLineCommentSuccess = true;
 
                 break;
               }
@@ -175,7 +179,9 @@ export class Lexer {
               comment += this.advance();
             }
 
-            break;
+            if(matchMultiLineCommentSuccess) break;
+
+            throw this.createParseError();
           }
 
           throw this.createParseError();
@@ -218,7 +224,7 @@ export class Lexer {
   protected matchString(): string {
     let stringBuffer = '', closed = false;
 
-    if (!['"', "'"].includes(this.peek())) throw this.createParseError();
+    // if (!`'"`.includes(this.peek())) throw this.createParseError();
 
     const quote = this.peek();
 
@@ -229,7 +235,7 @@ export class Lexer {
 
       stringBuffer += peek;
 
-      if (['\n', '\r'].includes(peek)) throw this.createParseError();
+      if ('\n\r'.includes(peek)) throw this.createParseError();
 
       this.advance();
 
@@ -292,7 +298,7 @@ export class Lexer {
   }
 
   protected matchIdentifier() {
-    if (!this.isIdentifierNameStart(this.peek())) throw this.createParseError();
+    // if (!this.isIdentifierNameStart(this.peek())) throw this.createParseError();
 
     let stringBuffer = '';
     while (!this.isAtEnd() && this.isIdentifierNamePart(this.peek())) stringBuffer += this.advance();
@@ -335,18 +341,7 @@ export class Lexer {
     }
 
     while (!this.isAtEnd()) {
-      if (this.peek() === '-' || this.peek() === '+') {
-        if (!valueBuffer || valueBuffer.slice(-1) === 'e') {
-          valueBuffer += this.advance();
-
-          if (this.peek() === '.' && !valueBuffer.includes('.')) continue;
-
-          valueBuffer += this.matchPureNumber();
-          continue;
-        }
-
-        throw this.createParseError();
-      }
+      if ('+-'.includes(this.peek())) throw this.createParseError();
 
       if (this.peek() === '.') {
         if (!valueBuffer.includes('e') && !valueBuffer.includes('.')) {

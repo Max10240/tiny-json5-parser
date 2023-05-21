@@ -1,13 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { Lexer, Parser } from "@/index";
+import { Parser, parse } from "@/index";
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parse as json5Parse } from 'json5';
 import { getDirName } from '../utils';
-
-function parse(input: string) {
-  return new Parser(new Lexer(input).parse()).parse();
-}
 
 describe('test ts parser', () => {
   it('parse number', () => {

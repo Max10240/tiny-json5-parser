@@ -6,7 +6,12 @@ function parse(input: string) {
 }
 
 describe('test ts lexer', () => {
+  it('whitespace', () => {
+    expect(parse('\u0009').length).toBe(0);
+  });
+
   it('parse number', () => {
+    expect(+parse('+1e+1')[0].value).toBe(+1e1);
     expect(+parse('-1.5e+5')[0].value).toBe(-1.5e+5);
     expect(+parse('1.5e-5')[0].value).toBe(1.5e-5);
     expect(+parse('-1.5e-5')[0].value).toBe(-1.5e-5);
@@ -17,6 +22,7 @@ describe('test ts lexer', () => {
     expect(+parse('+.5e+5')[0].value).toBe(+.5e+5);
     expect(+parse('-2')[0].value).toBe(-2);
     expect(+parse('5.')[0].value).toBe(5);
+    expect(+parse('+5.')[0].value).toBe(5);
     expect(parse('0x0123456789abcdefABCDEF')[0]).toMatchObject({
       type: 'NUMBER',
       value: '0x0123456789abcdefABCDEF',
@@ -49,6 +55,7 @@ describe('test ts lexer', () => {
       type: 'NUMBER',
       value: '-NaN',
     } satisfies Partial<IToken>);
+    expect(() => parse('1.2e5e')).toThrowError(`unexpected token 'e'`);
     expect(() => parse('1.e+5.')).toThrowError(`unexpected token '.'`);
     expect(() => parse('1.e+5-2')).toThrowError(`unexpected token '-'`);
     expect(() => parse('.e+5')).toThrowError(`unexpected token 'e'`);
@@ -61,6 +68,10 @@ describe('test ts lexer', () => {
     expect(() => parse('0x')).toThrowError(`unexpected token ''`);
     expect(() => parse('0xg')).toThrowError(`unexpected token 'g'`);
     expect(() => parse('0x')).toThrowError(`unexpected token ''`);
+    expect(() => parse('Infinit???')).toThrowError(`unexpected token '?'`);
+    expect(() => parse('-Infinit???')).toThrowError(`unexpected token '?'`);
+    expect(() => parse('Na???')).toThrowError(`unexpected token '?'`);
+    expect(() => parse('-Na???')).toThrowError(`unexpected token '?'`);
   });
 
   it('parse string', () => {
@@ -70,6 +81,9 @@ describe('test ts lexer', () => {
     expect(parse(`'single quote string\\'ok'`)[0].value, 'single quote').toBe(`single quote string'ok`);
     expect(() => parse(`'unclosed single quote string`), 'unclosed single quote').toThrowError(`unexpected token ''`);
     expect(() => parse(`"unclosed double quote string :`), 'unclosed double quote').toThrowError(`unexpected token ''`);
+    expect(() => parse(`"\\u012"`), 'unclosed hex string').toThrowError(`unexpected token '"'`);
+    expect(() => parse(`"\\?"`), 'illegal escape char').toThrowError(`unexpected token '?'`);
+    expect(() => parse(`"\n"`), 'unexpected \\n').toThrowError(`unexpected token '\n'`);
   });
 
   it('parse identifier', () => {
@@ -108,5 +122,9 @@ describe('test ts lexer', () => {
       type: 'NUMBER',
       value: '123',
     } satisfies Partial<IToken>);
+
+    expect(() => parse('/* some comment')).toThrowError(`unexpected token ''`)
+    expect(() => parse('/comment but only has single slash')).toThrowError(`unexpected token '/'`)
+    expect(() => parse('/* unclosed comment *')).toThrowError(`unexpected token ''`)
   });
 });

@@ -6,6 +6,11 @@ export default defineConfig({
     include: ['test/**/*.{test,spec}.ts'],
     alias: {
       '@': path.resolve(__dirname, './src'),
-    }
+    },
+    coverage: {
+      enabled: true,
+      reporter: 'text',
+      "100": true,
+    },
   }
 });

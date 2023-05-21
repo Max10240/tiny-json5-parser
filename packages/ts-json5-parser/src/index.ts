@@ -1,3 +1,6 @@
+import { Lexer } from './lexer';
+import { Parser } from './parser';
+
 export {
   type TTokenType,
   type IToken,
@@ -8,3 +11,7 @@ export {
   ParseError,
   Parser,
 } from './parser';
+
+export function parse(input: string) {
+  return new Parser(new Lexer(input).parse()).parse();
+}

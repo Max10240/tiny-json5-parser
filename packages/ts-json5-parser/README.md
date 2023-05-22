@@ -1,5 +1,7 @@
 # tiny-json5-parser
 
+[![codecov](https://codecov.io/gh/Max10240/tiny-json5-parser/branch/main/graph/badge.svg?token=LVRATT0PR3)](https://codecov.io/gh/Max10240/tiny-json5-parser)
+
 A parser for json5.
 
 ## Installation and Usage

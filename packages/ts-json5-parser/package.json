@@ -1,7 +1,7 @@
 {
   "name": "tiny-json5-parser",
   "type": "module",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "a tiny json5 parser",
   "author": "Baolong Wang <wangbaolong36@gmail.com>",
   "license": "MIT",

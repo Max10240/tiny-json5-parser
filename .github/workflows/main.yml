@@ -1,8 +1,37 @@
 name: github-actions
-on: [push]
+on:
+  push:
+    branches: [main]
+    tags: ['*']
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+env:
+  cwd: ${{github.workspace}}/packages/ts-json5-parser
+
+defaults:
+  run:
+    working-directory: packages/ts-json5-parser
+
 jobs:
-  check-bats-version:
+  test-ts-json5-parser:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16]
     steps:
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - run: npm run coverage
+
+      - uses: codecov/codecov-action@v3
+        with:
+          files: ${{ env.cwd }}/coverage/lcov.info
+          flags: ts-json5-parser
+        if: ${{ matrix.node-version == 16 }}

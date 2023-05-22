@@ -37,6 +37,7 @@
   "scripts": {
     "test": "vitest",
     "test:ci": "vitest run",
+    "coverage": "vitest run --coverage",
     "dev:tsc": "TSCONFIG_PATH=tsconfig.emit.json; tsc -w -p $TSCONFIG_PATH & tsc-alias -w -p $TSCONFIG_PATH",
     "build:tsc": "TSCONFIG_PATH=tsconfig.emit.json; tsc -p $TSCONFIG_PATH && tsc-alias -p $TSCONFIG_PATH",
     "dev": "tsup --watch",
